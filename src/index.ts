@@ -1,3 +1,4 @@
+import { ReturnFetchJsonDefaultOptions } from '../packages/return-fetch-json/src/index';
 /**
  * A simple and powerful high order function to extend fetch.
  *
@@ -63,7 +64,6 @@ export type ReturnFetchDefaultOptions = {
      */
     request?: (
       requestArgs: FetchArgs,
-      fetch: NonNullable<ReturnFetchDefaultOptions["fetch"]>,
     ) => Promise<FetchArgs>;
     /**
      * Response interceptor. It will be called after response.
@@ -77,7 +77,6 @@ export type ReturnFetchDefaultOptions = {
     response?: (
       response: Response,
       requestArgs: FetchArgs,
-      fetch: NonNullable<ReturnFetchDefaultOptions["fetch"]>,
     ) => Promise<Response>;
   };
 };
@@ -146,37 +145,42 @@ const normalizeArgs = async (
 };
 
 const returnFetch =
-  (defaultOptions?: ReturnFetchDefaultOptions) =>
-  async (...args: Parameters<typeof fetch>): Promise<Response> => {
-    const defaultOptionAppliedArgs = applyDefaultOptions(
-      await normalizeArgs(...args),
-      defaultOptions,
-    );
-
-    // apply request interceptor
-    const fetchProvided = defaultOptions?.fetch || fetch;
-    let requestInterceptorAppliedArgs: FetchArgs;
-    if (defaultOptions?.interceptors?.request) {
-      requestInterceptorAppliedArgs =
-        await defaultOptions?.interceptors?.request?.(
-          defaultOptionAppliedArgs,
-          fetchProvided,
+  (defaultOptions?: ReturnFetchDefaultOptions) =>{
+    let newDefaultOptions = {...defaultOptions}
+    return {
+      setDefaultHeaders: (headers: HeadersInit | undefined)=>{
+        newDefaultOptions.headers = headers;
+      },
+      call: async (...args: Parameters<typeof fetch>): Promise<Response> => {
+        const defaultOptionAppliedArgs = applyDefaultOptions(
+          await normalizeArgs(...args),
+          defaultOptions,
         );
-    } else {
-      requestInterceptorAppliedArgs = defaultOptionAppliedArgs;
+    
+        // apply request interceptor
+        const fetchProvided = defaultOptions?.fetch?.call || fetch;
+        let requestInterceptorAppliedArgs: FetchArgs;
+        if (defaultOptions?.interceptors?.request) {
+          requestInterceptorAppliedArgs =
+            await defaultOptions?.interceptors?.request?.(
+              defaultOptionAppliedArgs,
+            );
+        } else {
+          requestInterceptorAppliedArgs = defaultOptionAppliedArgs;
+        }
+    
+        // ajax call
+        const response = await fetchProvided(...requestInterceptorAppliedArgs);
+    
+        // apply response interceptor
+        return (
+          defaultOptions?.interceptors?.response?.(
+            response,
+            requestInterceptorAppliedArgs,
+          ) || response
+        );
+      }
     }
-
-    // ajax call
-    const response = await fetchProvided(...requestInterceptorAppliedArgs);
-
-    // apply response interceptor
-    return (
-      defaultOptions?.interceptors?.response?.(
-        response,
-        requestInterceptorAppliedArgs,
-        fetchProvided,
-      ) || response
-    );
-  };
+  }
 
 export default returnFetch;
