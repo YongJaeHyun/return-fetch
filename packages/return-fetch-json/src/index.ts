@@ -1,7 +1,7 @@
 import returnFetch, {
   FetchArgs,
   ReturnFetchDefaultOptions,
-} from "return-fetch";
+} from "../../../src/index";
 
 export type ReturnFetchJson = typeof returnFetchJson;
 
@@ -56,7 +56,7 @@ const returnFetchJson = (args?: ReturnFetchJsonDefaultOptions) => {
       headers.set("Content-Type", "application/json");
     headers.get("Accept") || headers.set("Accept", "application/json");
 
-    const response = await fetch(url, {
+    const response = await fetch.invoke(url, {
       ...init,
       headers,
       body: init?.body && JSON.stringify(init.body),

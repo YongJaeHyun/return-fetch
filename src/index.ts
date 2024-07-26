@@ -151,14 +151,14 @@ const returnFetch =
       setDefaultHeaders: (headers: HeadersInit | undefined)=>{
         newDefaultOptions.headers = headers;
       },
-      call: async (...args: Parameters<typeof fetch>): Promise<Response> => {
+      invoke: async (...args: Parameters<typeof fetch>): Promise<Response> => {
         const defaultOptionAppliedArgs = applyDefaultOptions(
           await normalizeArgs(...args),
           defaultOptions,
         );
     
         // apply request interceptor
-        const fetchProvided = defaultOptions?.fetch?.call || fetch;
+        const fetchProvided = defaultOptions?.fetch?.invoke || fetch;
         let requestInterceptorAppliedArgs: FetchArgs;
         if (defaultOptions?.interceptors?.request) {
           requestInterceptorAppliedArgs =
